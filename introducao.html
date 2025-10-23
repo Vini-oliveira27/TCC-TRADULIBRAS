@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRADULIBRAS - Introdução</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Figtree:wght@300;400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Instrument Sans', sans-serif;
+            background: linear-gradient(135deg, #9dabee 0%, #4151df 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.6;
+        }
+
+        .main-square {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            padding: 70px 60px;
+            text-align: center;
+            max-width: 1200px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            min-height: 850px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .project-name {
+            font-family: 'Manrope', sans-serif;
+            font-size: 5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+
+        .inclusion-phrase {
+            font-family: 'Figtree', sans-serif;
+            font-size: 2.2rem;
+            color: #5d34a7;
+            font-weight: 500;
+            margin: 40px 0;
+            line-height: 1.5;
+            padding: 30px;
+            background: rgba(248, 249, 250, 0.9);
+            border-radius: 20px;
+            border-left: 6px solid #9b59b6;
+        }
+
+        .platform-features {
+            background: rgba(248, 249, 250, 0.7);
+            padding: 45px;
+            border-radius: 20px;
+            margin: 35px 0;
+            border: 1px solid rgba(52, 152, 219, 0.15);
+        }
+
+        .feature-item {
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 1.4rem;
+            color: #2c3e50;
+            margin: 18px 0;
+            padding: 22px 25px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            font-weight: 400;
+            text-align: left;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .feature-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+
+        .welcome-message {
+            background: rgba(232, 244, 252, 0.9);
+            padding: 30px 35px;
+            border-radius: 20px;
+            margin: 30px 0;
+            border: 1px solid rgba(174, 214, 241, 0.6);
+        }
+
+        .welcome-message h2 {
+            font-family: 'Manrope', sans-serif;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .welcome-message p {
+            font-family: 'Instrument Sans', sans-serif;
+            font-weight: 400;
+            color: #5c636b;
+            font-size: 1.3rem;
+        }
+
+        .navigation {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 50px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 35px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+            border: 2px solid;
+            cursor: pointer;
+            font-size: 1.2rem;
+            min-width: 220px;
+            justify-content: center;
+            background: transparent;
+        }
+
+        .btn-tutorial {
+            color: #f39c12;
+            border-color: #f39c12;
+        }
+
+        .btn-tutorial:hover {
+            background: #f39c12;
+            color: white;
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px rgba(243, 156, 18, 0.4);
+        }
+
+        .btn-camera {
+            color: #2ecc71;
+            border-color: #2ecc71;
+        }
+
+        .btn-camera:hover {
+            background: #2ecc71;
+            color: white;
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px rgba(46, 204, 113, 0.4);
+        }
+
+        .btn-admin {
+            color: #9b59b6;
+            border-color: #9b59b6;
+        }
+
+        .btn-admin:hover {
+            background: #9b59b6;
+            color: white;
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px rgba(155, 89, 182, 0.4);
+        }
+
+        .btn-logout {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+
+        .btn-logout:hover {
+            background: #e74c3c;
+            color: white;
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px rgba(231, 76, 60, 0.4);
+        }
+
+        .feature-icon {
+            font-size: 1.6rem;
+            min-width: 35px;
+        }
+
+        .main-square {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .main-square {
+                padding: 50px 40px;
+                min-height: 800px;
+            }
+            
+            .project-name {
+                font-size: 4rem;
+            }
+            
+            .inclusion-phrase {
+                font-size: 1.8rem;
+                padding: 25px;
+            }
+            
+            .feature-item {
+                font-size: 1.2rem;
+                padding: 18px 22px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-square {
+                padding: 40px 30px;
+                min-height: auto;
+                border-radius: 20px;
+            }
+            
+            .project-name {
+                font-size: 3.2rem;
+            }
+            
+            .inclusion-phrase {
+                font-size: 1.5rem;
+                padding: 20px;
+            }
+            
+            .feature-item {
+                font-size: 1.1rem;
+                padding: 16px 20px;
+            }
+            
+            .platform-features {
+                padding: 30px 25px;
+            }
+            
+            .navigation {
+                flex-direction: column;
+                gap: 18px;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+                min-width: auto;
+                padding: 16px 28px;
+                font-size: 1.1rem;
+            }
+            
+            .welcome-message h2 {
+                font-size: 1.5rem;
+            }
+            
+            .welcome-message p {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+            
+            .main-square {
+                padding: 30px 20px;
+                border-radius: 16px;
+            }
+            
+            .project-name {
+                font-size: 2.5rem;
+            }
+            
+            .inclusion-phrase {
+                font-size: 1.3rem;
+                padding: 18px;
+            }
+            
+            .platform-features {
+                padding: 25px 20px;
+            }
+            
+            .feature-item {
+                font-size: 1rem;
+                margin: 15px 0;
+                padding: 15px 18px;
+            }
+            
+            .welcome-message {
+                padding: 25px;
+            }
+            
+            .welcome-message h2 {
+                font-size: 1.3rem;
+            }
+            
+            .welcome-message p {
+                font-size: 1rem;
+            }
+            
+            .btn {
+                padding: 14px 24px;
+                font-size: 1rem;
+            }
+            
+            .feature-icon {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-square">
+        <div class="project-name">TRADULIBRAS</div>
+        
+        <div class="welcome-message">
+            <h2>👋 Bem-vindo, {{ username }}!</h2>
+            <p>Você está conectado à plataforma de inclusão através da tecnologia</p>
+        </div>
+        
+        <div class="inclusion-phrase">
+            "Onde cada gesto é uma palavra, e cada palavra constrói um mundo mais inclusivo"
+        </div>
+        
+        <div class="platform-features">
+            <div class="feature-item">
+                <span class="feature-icon">🤖</span>
+                <span>Esta plataforma utiliza Inteligência Artificial para tornar a comunicação acessível</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">👋</span>
+                <span>Incentivamos e valorizamos o uso da LIBRAS como forma de expressão</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">💝</span>
+                <span>Acreditamos na tecnologia como ponte para a inclusão social</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🚀</span>
+                <span>Transformamos gestos em compreensão mútua</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🌐</span>
+                <span>Conectamos pessoas através da linguagem universal dos sinais</span>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <a href="/tutorial" class="btn btn-tutorial">
+                <span>📚</span>
+                <span>Tutorial</span>
+            </a>
+            
+            {% if is_admin %}
+            <a href="/admin" class="btn btn-admin">
+                <span>🛠️</span>
+                <span>Painel Admin</span>
+            </a>
+            {% endif %}
+            
+            <a href="/camera" class="btn btn-camera">
+                <span>📷</span>
+                <span>Iniciar Tradução</span>
+            </a>
+            <a href="/logout" class="btn btn-logout">
+                <span>🚪</span>
+                <span>Sair</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
