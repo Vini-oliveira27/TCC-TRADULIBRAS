@@ -1,12 +1,12 @@
 // ==============================================================
 // TCC LIBRAS - TRADULIBRAS
-// Código Arduino para controle da mão robótica em Libras
+// Codigo Arduino para controle da mao robotica em Libras
 // Suporte a palavras completas
 // ==============================================================
 
 #include <Servo.h>
 
-// ==================== DECLARAÇÃO DOS SERVOS ====================
+// ==================== DECLARACAO DOS SERVOS ====================
 Servo indicador;
 Servo medio;
 Servo anelar;
@@ -16,7 +16,7 @@ Servo dedao;
 Servo punho;
 Servo pulso;
 
-// ==================== DEFINIÇÃO DOS PINOS ====================
+// ==================== DEFINICAO DOS PINOS ====================
 const int p_indicador = 2;
 const int p_medio = 3;
 const int p_anelar = 4;
@@ -26,40 +26,73 @@ const int p_dedao = 7;
 const int p_punho = 8;
 const int p_pulso = 9;
 
-// ==================== CONFIGURAÇÃO DE TIMING ====================
-const int delayZ = 300; // Delay para movimentos sequenciais da letra Z
+// ==================== CONFIGURACAO DE TIMING ====================
+const int delayZ = 500; // Delay aumentado para movimentos sequenciais da letra Z
+const int delayEntreLetras = 500; // Delay de 0.5 segundos entre cada letra
 
 // ==================== TABELA DE COORDENADAS ====================
 const int coordenadas[26][8] = {
-  {180, 180, 180, 180, 115, 180, 90, 97}, // A
-  {0, 0, 0, 0, 140, 90, 90, 97},          // B
-  {130, 125, 115, 100, 80, 90, 90, 0},    // C
-  {0, 145, 140, 125, 100, 70, 90, 0},     // D
-  {80, 75, 60, 50, 140, 90, 90, 97},      // E
-  {130, 0, 0, 0, 120, 100, 90, 97},       // F
-  {0, 180, 180, 180, 135, 135, 90, 97},   // G
-  {0, 70, 180, 180, 140, 90, 90, 35},     // H
-  {180, 180, 180, 0, 120, 100, 90, 97},   // I
-  {180, 180, 180, 0, 120, 100, 130, 20},  // J
-  {0, 70, 180, 180, 140, 90, 130, 97},    // K
-  {0, 180, 180, 180, 0, 180, 90, 97},     // L
-  {0, 0, 0, 180, 135, 135, 180, 97},      // M
-  {0, 0, 180, 180, 135, 135, 180, 97},    // N
-  {145, 145, 140, 125, 100, 70, 90, 0},   // O
-  {0, 70, 180, 180, 140, 90, 160, 10},    // P
-  {0, 180, 180, 180, 135, 135, 180, 97},  // Q
-  {0, 65, 180, 180, 140, 90, 90, 97},     // R
-  {180, 180, 180, 180, 90, 80, 90, 97},   // S
-  {135, 0, 0, 0, 120, 65, 90, 97},        // T
-  {0, 0, 180, 180, 115, 180, 90, 97},     // U
-  {0, 100, 180, 180, 140, 90, 90, 97},    // V
-  {0, 0, 0, 180, 135, 135, 90, 97},       // W
-  {85, 180, 180, 180, 135, 135, 160, 97}, // X
-  {180, 180, 180, 0, 30, 180, 90, 97},    // Y
-  {0, 180, 180, 180, 135, 135, 110, 45}    // Z - Movimento padrão (será sobrescrito pela função especial)
+  // A
+  {180, 180, 160, 180, 140, 180, 90, 97},
+  // B
+  {0, 0, 0, 0, 160, 90, 90, 97},
+  // C
+  {105, 125, 90, 100, 100, 90, 90, 0},
+  // D
+  {0, 135, 100, 105, 110, 70, 90, 0},
+  // E
+  {55, 63, 40, 50, 160, 90, 90, 97},
+  // F
+  {110, 0, 0, 0, 120, 100, 90, 97},
+  // G
+  {0, 180, 160, 180, 140, 180, 90, 97},
+  // H
+  {0, 70, 160, 180, 160, 90, 90, 35},
+  // I
+  {180, 180, 160, 0, 140, 110, 90, 97},
+  // J
+  {180, 180, 160, 0, 120, 100, 130, 20},
+  // K
+  {0, 70, 160, 180, 160, 90, 130, 97},
+  // L
+  {0, 180, 160, 180, 0, 180, 90, 97},
+  // M
+  {0, 0, 0, 180, 135, 135, 180, 97},
+  // N
+  {0, 0, 160, 180, 135, 135, 180, 97},
+  // O
+  {115, 135, 100, 105, 110, 70, 90, 0},
+  // P
+  {0, 70, 160, 180, 140, 90, 160, 10},
+  // Q
+  {0, 180, 160, 180, 135, 135, 180, 97},
+  // R
+  {35, 0, 160, 180, 135, 130, 90, 97},
+  // S
+  {180, 180, 160, 180, 70, 80, 90, 97},
+  // T
+  {110, 0, 0, 0, 130, 70, 90, 97},
+  // U
+  {0, 0, 160, 180, 115, 180, 90, 97},
+  // V
+  {0, 65, 160, 180, 115, 180, 90, 97},
+  // W
+  {0, 0, 0, 180, 135, 135, 90, 97},
+  // X
+  {50, 180, 160, 180, 135, 135, 160, 97},
+  // Y
+  {180, 180, 160, 0, 30, 180, 90, 97},
+  // Z
+  {0, 180, 160, 180, 135, 135, 90, 97}
 };
 
-// ==================== FUNÇÃO DE REPOUSO ====================
+// ==================== COORDENADAS PARA OS 4 PONTOS DA LETRA Z ====================
+const int z_ponto1[8] = {50, 180, 160, 180, 135, 135, 110, 140};   // Ponto 1: Posicao inicial
+const int z_ponto2[8] = {50, 180, 160, 180, 135, 135, 110, 50};  // Ponto 2: Movimento do pulso
+const int z_ponto3[8] = {50, 180, 160, 180, 135, 135, 140, 130};  // Ponto 3: Movimento do polegar e pulso
+const int z_ponto4[8] = {50, 180, 160, 180, 135, 135, 140, 80};  // Ponto 4: Posicao final
+
+// ==================== FUNCAO DE REPOUSO ====================
 void posicaoRepouso() {
   indicador.write(0); 
   medio.write(0);
@@ -72,40 +105,52 @@ void posicaoRepouso() {
   Serial.println("REPOUSO: Mao em posicao de repouso");
 }
 
-// ==================== FUNÇÃO ESPECIAL PARA LETRA Z ====================
-void executarLetraZ() {
-  Serial.println("EXECUTANDO: Letra Z - Movimento complexo");
-  
-  // Primeira etapa do movimento da letra Z
-  Serial.println("Z - Etapa 1: Preparando dedos");
-  indicador.write(0);
-  medio.write(180);
-  anelar.write(180);
-  minimo.write(180);
-  delay(delayZ);
-  
-  // Segunda etapa - movimento do polegar
-  Serial.println("Z - Etapa 2: Movimento do polegar");
-  polegar.write(135);
-  dedao.write(135);
-  delay(delayZ);
-  
-  // Terceira etapa - movimento do pulso/punho (se necessário)
-  Serial.println("Z - Etapa 3: Ajuste final");
-  punho.write(90);
-  pulso.write(97);
-  delay(delayZ * 2);
-  
-  Serial.println("Z - Movimento completo!");
+// ==================== FUNCAO PARA APLICAR COORDENADAS ====================
+void aplicarCoordenadas(const int coord[8]) {
+  indicador.write(coord[0]);
+  medio.write(coord[1]);
+  anelar.write(coord[2]);
+  minimo.write(coord[3]);
+  polegar.write(coord[4]);
+  dedao.write(coord[5]);
+  punho.write(coord[6]);
+  pulso.write(coord[7]);
 }
 
-// ==================== FUNÇÃO PARA EXECUTAR LETRA ====================
+// ==================== FUNCAO ESPECIAL PARA LETRA Z COM 4 PONTOS ====================
+void executarLetraZ() {
+  Serial.println("EXECUTANDO: Letra Z - Movimento complexo com 4 pontos");
+  
+  // Ponto 1: Posicao inicial
+  Serial.println("Z - Ponto 1: Posicao inicial");
+  aplicarCoordenadas(z_ponto1);
+  delay(delayZ);
+  
+  // Ponto 2: Movimento do pulso
+  Serial.println("Z - Ponto 2: Movimento do pulso");
+  aplicarCoordenadas(z_ponto2);
+  delay(delayZ);
+  
+  // Ponto 3: Movimento combinado
+  Serial.println("Z - Ponto 3: Movimento do polegar e ajuste do pulso");
+  aplicarCoordenadas(z_ponto3);
+  delay(delayZ);
+  
+  // Ponto 4: Posicao final
+  Serial.println("Z - Ponto 4: Posicao final");
+  aplicarCoordenadas(z_ponto4);
+  delay(delayZ);
+  
+  Serial.println("Z - Movimento completo com 4 pontos!");
+}
+
+// ==================== FUNCAO PARA EXECUTAR LETRA ====================
 void executarLetra(char letra) {
   int indice = letra - 'a';
   
   if (indice >= 0 && indice < 26) {
     
-    // Se for a letra Z, usa a função especial
+    // Se for a letra Z, usa a funcao especial com 4 pontos
     if (letra == 'z') {
       executarLetraZ();
       return;
@@ -113,22 +158,14 @@ void executarLetra(char letra) {
     
     // Para outras letras, movimento normal
     int* coord = coordenadas[indice];
-    
-    indicador.write(coord[0]);
-    medio.write(coord[1]);
-    anelar.write(coord[2]);
-    minimo.write(coord[3]);
-    polegar.write(coord[4]);
-    dedao.write(coord[5]);
-    punho.write(coord[6]);
-    pulso.write(coord[7]);
+    aplicarCoordenadas(coord);
     
     Serial.print("EXECUTANDO: Letra ");
     Serial.println(letra);
   }
 }
 
-// ==================== CONFIGURAÇÃO INICIAL ====================
+// ==================== CONFIGURACAO INICIAL ====================
 void setup() {
   indicador.attach(p_indicador);
   medio.attach(p_medio);
@@ -144,10 +181,7 @@ void setup() {
     ; // Aguarda porta serial
   }
   
-  Serial.println("INICIO: TRADULIBRAS - MAO ROBOTICA INICIADA");
-  Serial.println("MODOS: Letras individuais e palavras completas");
-  Serial.println("AGUARDANDO: Comandos...");
-  
+  Serial.println("TRADULIBRAS - Pronto para receber comandos");
   posicaoRepouso();
 }
 
@@ -159,6 +193,9 @@ void loop() {
     if (receivedChar == '\n' || receivedChar == '\r') {
       return;
     }
+    
+    // Delay antes de processar cada letra recebida
+    delay(delayEntreLetras);
     
     Serial.print("RECEBIDO: ");
     Serial.println(receivedChar);
@@ -176,7 +213,7 @@ void loop() {
         break;
       
       default:
-        Serial.println("ERRO: Comando não reconhecido");
+        Serial.println("ERRO: Comando nao reconhecido");
         break;
     }
     

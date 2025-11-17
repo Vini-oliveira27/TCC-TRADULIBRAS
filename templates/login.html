@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TraduLibras - Login</title>
-    <link rel="icon" href="{{ url_for('static', filename='images/logo.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ url_for('static', filename='images/TRADULIBRAS-HEADER.png') }}" type="image/png">
     <style>
         * {
             margin: 0;
@@ -50,10 +50,10 @@
         }
 
         .logo img {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 15px;
-        }
+    width: 220px;
+    height: auto;
+    margin-bottom: 25px;
+                    }
 
         .logo h1 {
             color: #333;
@@ -226,13 +226,15 @@
             .logo h1 {
                 font-size: 24px;
             }
+            
+            
         }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="logo">
-            <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="TraduLibras Logo">
+            <img src="{{ url_for('static', filename='images/logo_tradulibras.png') }}" alt="TraduLibras Logo">
             <h1>TraduLibras</h1>
             <p>Sistema de Reconhecimento de LIBRAS</p>
         </div>
