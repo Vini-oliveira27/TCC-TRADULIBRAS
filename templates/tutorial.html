@@ -9,9 +9,9 @@
     <style>
         :root {
             --primary: #9dabee;
-            --secondary: #4151df;
+            --secondary: #49529e;
             --accent: #ff6b6b;
-            --success: #2ecc71;
+            --success: #4845ec;
             --dark: #2c3e50;
             --light: #f8f9fa;
             --text: #333;
@@ -28,7 +28,7 @@
 
         body {
             font-family: 'Instrument Sans', sans-serif;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: linear-gradient(135deg, #9dabee 0%, #e6714b 50%, #103b55 100%);
             margin: 0;
             padding: 20px;
             min-height: 100vh;
@@ -81,21 +81,21 @@
             align-items: center;
             gap: 10px;
             background: rgba(255, 255, 255, 0.95);
-            color: var(--primary);
+            color: var(--secondary);
             padding: 14px 28px;
             text-decoration: none;
             border-radius: 50px;
             font-weight: 600;
             transition: var(--transition);
             box-shadow: var(--shadow);
-            border: 2px solid var(--primary);
+            border: 2px solid var(--secondary);
             font-size: 1rem;
             backdrop-filter: blur(10px);
             white-space: nowrap;
         }
 
         .nav-btn:hover {
-            background: var(--primary);
+            background: var(--secondary);
             color: white;
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
@@ -114,7 +114,7 @@
         }
 
         .card-title {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             color: var(--dark);
             margin-bottom: 8px;
             text-align: center;
@@ -156,7 +156,7 @@
             transition: var(--transition);
             position: relative;
             overflow: hidden;
-            border-left: 4px solid var(--primary);
+            border-left: 4px solid var(--secondary);
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -172,7 +172,7 @@
             position: absolute;
             top: 12px;
             right: 12px;
-            background: var(--primary);
+            background: var(--secondary);
             color: white;
             width: 28px;
             height: 28px;
@@ -186,22 +186,22 @@
 
         .step-icon {
             font-size: 1.6rem;
-            color: var(--primary);
+            color: var(--secondary);
             margin-bottom: 12px;
         }
 
         .step-title {
-            font-family: 'Manrope', sans-serif;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 12px;
-            padding-right: 35px;
+        font-family: 'Manrope', sans-serif;
+        font-size: 1.6rem;/* AUMENTEI DE 1.1rem PARA 1.4rem */
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 12px;
+        padding-right: 35px;
         }
 
         .step-content {
             color: var(--text);
-            font-size: 0.85rem;
+            font-size: 1rem; /* AUMENTEI DE 0.85rem PARA 1rem */
             flex: 1;
         }
 
@@ -214,11 +214,12 @@
             margin-bottom: 6px;
             padding-left: 16px;
             position: relative;
+            font-size:1.40rem;
         }
 
         .step-content li:before {
             content: "•";
-            color: var(--primary);
+            color: var(--secondary);
             font-weight: bold;
             position: absolute;
             left: 0;
@@ -279,13 +280,13 @@
         }
 
         .btn-back:hover {
-            background: var(--primary);
+            background: var(--secondary);
             color: white;
             transform: translateY(-2px);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--success) 0%, #27ae60 100%);
+            background: linear-gradient(135deg, var(--secondary));
             color: white;
         }
 
@@ -377,7 +378,7 @@
             }
             
             .card-title {
-                font-size: 1.4rem;
+                font-size: 2.5rem;
             }
             
             .step {
@@ -406,8 +407,12 @@
             }
             
             .step-title {
-                font-size: 1rem;
-                margin-bottom: 8px;
+            font-family: 'Manrope', sans-serif;
+            font-size: 1.3rem; /* AUMENTEI DE 1.1rem PARA 1.3rem */
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 12px;
+            padding-right: 35px;
             }
             
             .step-icon {

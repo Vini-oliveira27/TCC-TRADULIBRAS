@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Instrument Sans', sans-serif;
-            background: linear-gradient(135deg, #9dabee 0%, #4151df 100%);
+            background: linear-gradient(135deg, #9dabee 0%, #e6714b 50%, #103b55 100%);
             min-height: 100vh;
             padding: 20px;
             display: flex;
@@ -154,16 +154,19 @@
             background: transparent;
         }
 
+        .btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+        }
+
         .btn-tutorial {
             color: #f39c12;
             border-color: #f39c12;
         }
 
         .btn-tutorial:hover {
-            background: #f39c12;
-            color: white;
-            transform: translateY(-4px);
-            box-shadow: 0 12px 25px rgba(243, 156, 18, 0.4);
+            background: linear-gradient(135deg, white 0%, #f39c12 100%);
+            color: #f39c12;
         }
 
         .btn-camera {
@@ -172,10 +175,8 @@
         }
 
         .btn-camera:hover {
-            background: #2ecc71;
-            color: white;
-            transform: translateY(-4px);
-            box-shadow: 0 12px 25px rgba(46, 204, 113, 0.4);
+            background: linear-gradient(135deg, white 0%, #2ecc71 100%);
+            color: #2ecc71;
         }
 
         .btn-admin {
@@ -184,10 +185,8 @@
         }
 
         .btn-admin:hover {
-            background: #9b59b6;
-            color: white;
-            transform: translateY(-4px);
-            box-shadow: 0 12px 25px rgba(155, 89, 182, 0.4);
+            background: linear-gradient(135deg, white 0%, #9b59b6 100%);
+            color: #9b59b6;
         }
 
         .btn-logout {
@@ -196,10 +195,8 @@
         }
 
         .btn-logout:hover {
-            background: #e74c3c;
-            color: white;
-            transform: translateY(-4px);
-            box-shadow: 0 12px 25px rgba(231, 76, 60, 0.4);
+            background: linear-gradient(135deg, white 0%, #e74c3c 100%);
+            color: #e74c3c;
         }
 
         .feature-icon {
