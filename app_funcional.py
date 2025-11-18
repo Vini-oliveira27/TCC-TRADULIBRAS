@@ -25,9 +25,9 @@ hands = mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_c
 
 # Carregar modelo
 pasta_modelos = 'modelos/'
-modelos = sorted(glob.glob(os.path.join(pasta_modelos, 'modelo_libras_*.pkl')), key=os.path.getmtime)
-scalers = sorted(glob.glob(os.path.join(pasta_modelos, 'scaler_libras_*.pkl')), key=os.path.getmtime)
-infos = sorted(glob.glob(os.path.join(pasta_modelos, 'modelo_info_libras_*.pkl')), key=os.path.getmtime)
+modelos = sorted(glob.glob(os.path.join(pasta_modelos, 'modelo_libras.pkl')), key=os.path.getmtime)
+scalers = sorted(glob.glob(os.path.join(pasta_modelos, 'scaler_libras.pkl')), key=os.path.getmtime)
+infos = sorted(glob.glob(os.path.join(pasta_modelos, 'modelo_info.pkl')), key=os.path.getmtime)
 
 if modelos and scalers and infos:
     modelo_inclusao_bc, scaler_inclusao_bc, info_inclusao_bc = modelos[-1], scalers[-1], infos[-1]

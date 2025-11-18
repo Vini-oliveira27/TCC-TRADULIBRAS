@@ -132,20 +132,44 @@ class TreinadorLIBRAS:
         
         return accuracy, cv_mean
     
-    def salvar_modelo(self, precisao):
-        """Salvar modelo treinado"""
+    def salvar_modelo(self, precisao, fazer_backup=True):
+        """Salvar modelo treinado com opção de backup"""
         print("\n💾 Salvando modelo...")
         
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # Nomes principais (sempre os mesmos)
+        modelo_principal = 'modelos/modelo_libras.pkl'
+        scaler_principal = 'modelos/scaler_libras.pkl'
+        info_principal = 'modelos/modelo_info.pkl'
         
-        # Nomes dos arquivos
-        modelo_file = f'modelos/modelo_libras_{timestamp}.pkl'
-        scaler_file = f'modelos/scaler_libras_{timestamp}.pkl'
-        info_file = f'modelos/modelo_info_libras_{timestamp}.pkl'
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
         # Criar diretório modelos se não existir
         if not os.path.exists('modelos'):
             os.makedirs('modelos')
+        
+        # Fazer backup do modelo anterior se existir
+        if fazer_backup and os.path.exists(modelo_principal):
+            try:
+                modelo_backup = f'modelos/backup/modelo_libras_{timestamp}.pkl'
+                scaler_backup = f'modelos/backup/scaler_libras_{timestamp}.pkl'
+                info_backup = f'modelos/backup/modelo_info_{timestamp}.pkl'
+                
+                # Criar diretório backup se não existir
+                if not os.path.exists('modelos/backup'):
+                    os.makedirs('modelos/backup')
+                
+                # Ler e salvar backup
+                with open(modelo_principal, 'rb') as f_old, open(modelo_backup, 'wb') as f_new:
+                    f_new.write(f_old.read())
+                with open(scaler_principal, 'rb') as f_old, open(scaler_backup, 'wb') as f_new:
+                    f_new.write(f_old.read())
+                with open(info_principal, 'rb') as f_old, open(info_backup, 'wb') as f_new:
+                    f_new.write(f_old.read())
+                    
+                print(f"📦 Backup criado: modelo_libras_{timestamp}.pkl")
+                
+            except Exception as e:
+                print(f"⚠️ Não foi possível criar backup: {e}")
         
         # Informações do modelo
         model_info = {
@@ -158,24 +182,27 @@ class TreinadorLIBRAS:
             'creation_date': datetime.now().isoformat()
         }
         
-        # Salvar modelo
-        with open(modelo_file, 'wb') as f:
-            pickle.dump(self.model, f)
-        
-        # Salvar scaler
-        with open(scaler_file, 'wb') as f:
-            pickle.dump(self.scaler, f)
-        
-        # Salvar info
-        with open(info_file, 'wb') as f:
-            pickle.dump(model_info, f)
-        
-        print(f"✅ Modelo salvo:")
-        print(f"   📄 Modelo: {modelo_file}")
-        print(f"   📏 Scaler: {scaler_file}")
-        print(f"   ℹ️ Info: {info_file}")
-        
-        return modelo_file, scaler_file, info_file
+        try:
+            # Salvar NOVO modelo (substitui o anterior)
+            with open(modelo_principal, 'wb') as f:
+                pickle.dump(self.model, f)
+            
+            with open(scaler_principal, 'wb') as f:
+                pickle.dump(self.scaler, f)
+            
+            with open(info_principal, 'wb') as f:
+                pickle.dump(model_info, f)
+            
+            print(f"✅ Modelo salvo (substituído):")
+            print(f"   📄 Modelo: {modelo_principal}")
+            print(f"   📏 Scaler: {scaler_principal}")
+            print(f"   ℹ️ Info: {info_principal}")
+            
+            return modelo_principal, scaler_principal, info_principal
+            
+        except Exception as e:
+            print(f"❌ ERRO ao salvar modelo: {e}")
+            return None
 
 def encontrar_arquivo_csv():
     """Encontrar arquivo CSV mais recente"""
@@ -222,7 +249,7 @@ def main():
     
     # Salvar modelo se precisão for adequada
     if accuracy > 0.7:  # Mínimo 70% de precisão
-        treinador.salvar_modelo(accuracy)
+        treinador.salvar_modelo(accuracy, fazer_backup=True)
         print("\n🎉 TREINAMENTO CONCLUÍDO COM SUCESSO!")
     else:
         print("\n⚠️ Acurácia muito baixa! Considere:")
