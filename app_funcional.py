@@ -3,16 +3,10 @@
 
 from flask import Flask, render_template, Response, jsonify, request, redirect, url_for, flash, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-import cv2
-import mediapipe as mp
-import numpy as np
-import pickle
-import os
-import tempfile
-import threading
-import time
+import cv2, mediapipe as mp, numpy as np, pickle, os, tempfile, threading, time, glob
 from gtts import gTTS
 from datetime import datetime
+from auth import user_manager, User
 
 app = Flask(__name__)
 app.secret_key = 'tradulibras_secret_key_2024'
@@ -22,374 +16,333 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Simulação simples do user_manager para evitar erros
-class SimpleUserManager:
-    def get_user(self, user_id):
-        return User(user_id, f"user{user_id}", False)
-    
-    def authenticate(self, username, password):
-        if username == "admin" and password == "admin":
-            return User(1, "admin", True)
-        return None
-    
-    def get_stats(self):
-        return {"total_users": 1, "active_sessions": 1}
-
-class User:
-    def __init__(self, id, username, is_admin=False):
-        self.id = id
-        self.username = username
-        self.is_admin = is_admin
-    
-    def is_authenticated(self):
-        return True
-    
-    def is_active(self):
-        return True
-    
-    def is_anonymous(self):
-        return False
-    
-    def get_id(self):
-        return str(self.id)
-    
-    def is_admin(self):
-        return self.is_admin
-
-user_manager = SimpleUserManager()
-
 @login_manager.user_loader
-def load_user(user_id):
-    return user_manager.get_user(user_id)
+def load_user(user_id): return user_manager.get_user(user_id)
 
 # MediaPipe
-mp_hands = mp.solutions.hands
-mp_draw = mp.solutions.drawing_utils
-hands = mp_hands.Hands(
-    static_image_mode=False,
-    max_num_hands=1,
-    min_detection_confidence=0.7,
-    min_tracking_confidence=0.7
-)
+mp_hands, mp_draw = mp.solutions.hands, mp.solutions.drawing_utils
+hands = mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_confidence=0.7, min_tracking_confidence=0.7)
 
-# Carregar modelo
+# Carregar modelo - ATUALIZADO para compatibilidade
 pasta_modelos = 'modelos/'
-modelo_file = os.path.join(pasta_modelos, 'modelo_libras.pkl')
-gestos_file = os.path.join(pasta_modelos, 'gestos_treinados.txt')
+modelo_path = os.path.join(pasta_modelos, 'modelo_libras.pkl')
+info_path = os.path.join(pasta_modelos, 'info_modelo.pkl')
 
-# Inicializar variáveis
-model = None
-gestos_treinados = []
-
-try:
-    if os.path.exists(modelo_file):
-        print("📦 Carregando modelo...")
-        with open(modelo_file, 'rb') as f: 
+if os.path.exists(modelo_path) and os.path.exists(info_path):
+    try:
+        with open(modelo_path, 'rb') as f: 
             model = pickle.load(f)
-        print("✅ Modelo carregado com sucesso!")
+        with open(info_path, 'rb') as f: 
+            model_info = pickle.load(f)
         
-        if os.path.exists(gestos_file):
-            with open(gestos_file, 'r') as f:
-                gestos_treinados = f.read().strip().split(',')
-            print(f"🎯 Gestos treinados: {gestos_treinados}")
-        else:
-            # Tentar inferir do modelo
-            if hasattr(model, 'classes_'):
-                gestos_treinados = model.classes_.tolist()
-            else:
-                gestos_treinados = ['A','B','C','D','E','F','G','H','I','J','K','L','M',
-                                  'N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
-                                  'ESPACO','PONTO']
-                
-except Exception as e:
-    print(f"❌ Erro ao carregar modelo: {e}")
-    model = None
+        # Carregar classes do modelo
+        classes = model_info.get('gestos_treinados', [])
+        print(f"📊 Modelo carregado: {len(classes)} classes")
+        print(f"📋 Classes: {classes}")
+        
+        # Não usamos scaler no novo modelo
+        scaler = None
+        
+    except Exception as e:
+        print(f"❌ Erro ao carregar modelo: {e}")
+        model, scaler, model_info = None, None, {'gestos_treinados': [], 'total_amostras': 0}
+else:
+    print("❌ Modelo não encontrado. Execute primeiro o script de treinamento.")
+    model, scaler, model_info = None, None, {'gestos_treinados': [], 'total_amostras': 0}
 
 # Variáveis globais
-current_letter = ""
-formed_text = ""
-last_prediction_time = datetime.now()
-hand_detected_time = None
-prediction_cooldown = 2.0
-min_hand_time = 1.0
-auto_speak_enabled = True
-confidence_threshold = 0.3
-selected_camera_index = 0
+current_letter = formed_text = ""
+last_prediction_time, hand_detected_time = datetime.now(), None
+prediction_cooldown, min_hand_time, auto_speak_enabled = 2.5, 1.5, True
 
-def extrair_caracteristicas(hand_landmarks):
-    """Extrai 63 features - compatível com o coletor"""
-    if not hand_landmarks:
+def process_landmarks(hand_landmarks):
+    """ATUALIZADO: Extrai características compatíveis com o modelo de treinamento"""
+    if not hand_landmarks: 
         return None
     
-    p0 = hand_landmarks.landmark[0]  # Pulso
+    # Método compatível com o script de treinamento
+    p0 = hand_landmarks.landmark[0]  # Ponto de referência do pulso
     dados = []
+    
     for lm in hand_landmarks.landmark:
-        dados.extend([lm.x - p0.x, lm.y - p0.y, lm.z - p0.z])
+        dados.extend([
+            lm.x - p0.x,
+            lm.y - p0.y,
+            lm.z - p0.z
+        ])
+    
+    # Verifica se temos 63 características (21 pontos * 3 coordenadas)
+    if len(dados) != 63:
+        print(f"⚠️ Número de características incorreto: {len(dados)}")
+        return None
+    
     return dados
 
-def detectar_webcam_usb():
-    """Detectar webcam automaticamente"""
+def detectar_webcam_usb_automatico():
     for i in range(5):
         try:
             cap = cv2.VideoCapture(i)
             if cap.isOpened() and cap.read()[0]:
                 cap.release()
-                print(f"📹 Webcam detectada: índice {i}")
                 return i
-        except:
-            pass
-    print("⚠️  Usando webcam padrão (índice 0)")
+        except: pass
     return 0
 
-selected_camera_index = detectar_webcam_usb()
+selected_camera_index = detectar_webcam_usb_automatico()
 
 def generate_frames():
-    global current_letter, formed_text, last_prediction_time, hand_detected_time
-    
+    global current_letter, formed_text, last_prediction_time, hand_detected_time, selected_camera_index
     camera = cv2.VideoCapture(selected_camera_index)
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     
-    if not camera.isOpened():
-        print("❌ Erro: Não foi possível acessar a câmera")
-        return
-    
     while True:
-        try:
-            success, frame = camera.read()
-            if not success:
-                break
-            
-            frame = cv2.flip(frame, 1)
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = hands.process(rgb_frame)
-            current_time = datetime.now()
-            
-            if results.multi_hand_landmarks:
-                if hand_detected_time is None:
-                    hand_detected_time = current_time
-                
-                for hand_landmarks in results.multi_hand_landmarks:
-                    mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-                    points = extrair_caracteristicas(hand_landmarks)
-                
-                time_since_detection = (current_time - hand_detected_time).total_seconds()
-                
-                if (time_since_detection >= min_hand_time and 
-                    points and len(points) == 63 and 
-                    model is not None):
-                    
-                    time_since_last = (current_time - last_prediction_time).total_seconds()
-                    
-                    if time_since_last >= prediction_cooldown:
-                        try:
-                            predicted_proba = model.predict_proba([points])[0]
-                            max_confidence = np.max(predicted_proba)
-                            predicted_index = np.argmax(predicted_proba)
-                            
-                            if max_confidence >= confidence_threshold:
-                                predicted_gesto = gestos_treinados[predicted_index]
-                                
-                                print(f"🎯 {predicted_gesto} ({max_confidence*100:.1f}%)")
-                                
-                                # Processar gestos especiais
-                                if predicted_gesto == 'ESPACO':
-                                    current_letter = '[ESPAÇO]'
-                                    formed_text += ' '
-                                elif predicted_gesto == 'PONTO':
-                                    current_letter = '[PONTO]'
-                                    formed_text += '.'
-                                    # Falar automaticamente se habilitado
-                                    if auto_speak_enabled and formed_text.strip():
-                                        texto_limpo = formed_text.strip()
-                                        threading.Thread(
-                                            target=falar_texto_automatico, 
-                                            args=(texto_limpo,), 
-                                            daemon=True
-                                        ).start()
-                                else:
-                                    current_letter = predicted_gesto
-                                    formed_text += predicted_gesto
-                                
-                                last_prediction_time = current_time
-                                hand_detected_time = None
-                                
-                            else:
-                                # Confiança baixa
-                                current_letter = "?"
-                                
-                        except Exception as e:
-                            print(f"❌ Erro na predição: {e}")
-            else:
-                hand_detected_time = None
-                current_letter = ""
-            
-            # Codificar frame para streaming
-            ret, buffer = cv2.imencode('.jpg', frame)
-            if ret:
-                frame_bytes = buffer.tobytes()
-                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-            else:
-                break
-                
-        except Exception as e:
-            print(f"❌ Erro no generate_frames: {e}")
+        success, frame = camera.read()
+        if not success: 
             break
+        
+        frame = cv2.flip(frame, 1)
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = hands.process(rgb_frame)
+        points, current_time = None, datetime.now()
+        
+        if results.multi_hand_landmarks:
+            if hand_detected_time is None: 
+                hand_detected_time = current_time
+            
+            for hand_landmarks in results.multi_hand_landmarks:
+                mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+                points = process_landmarks(hand_landmarks)
+            
+            time_since_detection = (current_time - hand_detected_time).total_seconds()
+            
+            if time_since_detection >= min_hand_time:
+                time_since_last = (current_time - last_prediction_time).total_seconds()
+                
+                if time_since_last >= prediction_cooldown and points and len(points) == 63:
+                    try:
+                        if model:
+                            # Faz predição diretamente (sem normalização)
+                            predicted_letter = model.predict([points])[0]
+                            
+                            print(f"🔍 Predição: {predicted_letter}")
+                            
+                            if predicted_letter == 'ESPACO':
+                                current_letter, formed_text = '[ESPAÇO]', formed_text + ' '
+                            elif predicted_letter == 'PONTO':
+                                current_letter = '[PONTO]'
+                                texto_para_falar = formed_text.strip()
+                                formed_text = ""
+                                if texto_para_falar and auto_speak_enabled:
+                                    threading.Thread(target=falar_texto_automatico, args=(texto_para_falar,), daemon=True).start()
+                            else:
+                                current_letter, formed_text = predicted_letter, formed_text + predicted_letter
+                            
+                            last_prediction_time, hand_detected_time = current_time, None
+                    except Exception as e: 
+                        print(f"❌ Erro na predição: {e}")
+        else: 
+            hand_detected_time, current_letter = None, ""
+        
+        # REMOVIDO: As escritas de texto na câmera
+        # Apenas o frame limpo com os landmarks da mão será exibido
+        
+        ret, buffer = cv2.imencode('.jpg', frame)
+        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
     
     camera.release()
 
-def falar_texto_automatico(texto):
-    """Falar texto usando gTTS"""
+def falar_texto_automatico(texto_para_falar):
     try:
-        if not texto.strip():
+        if not texto_para_falar.strip(): 
             return
-            
-        tts = gTTS(text=texto, lang='pt-br')
-        temp_file = os.path.join(tempfile.gettempdir(), f'tradulibras_{int(time.time())}.mp3')
+        
+        texto_limpo = texto_para_falar.strip()
+        tts = gTTS(text=texto_limpo, lang='pt-br')
+        temp_file = os.path.join(tempfile.gettempdir(), f'pygame_fala_{int(time.time())}.mp3')
         tts.save(temp_file)
         
-        # Limpar arquivo temporário após algum tempo
-        def limpar_arquivo(file_path):
-            time.sleep(30)
-            if os.path.exists(file_path):
-                os.remove(file_path)
+        try:
+            import pygame
+            pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+            pygame.mixer.music.load(temp_file)
+            pygame.mixer.music.play()
+            
+            start_time = time.time()
+            while pygame.mixer.music.get_busy():
+                if time.time() - start_time > 30: 
+                    break
+                time.sleep(0.1)
+            pygame.mixer.quit()
+        except Exception as e:
+            print(f"⚠️ Erro pygame: {e}")
         
-        threading.Thread(target=limpar_arquivo, args=(temp_file,), daemon=True).start()
-        
-    except Exception as e:
-        print(f"❌ Erro no TTS: {e}")
+        # Limpa arquivo temporário após 10 segundos
+        threading.Thread(target=lambda f: [time.sleep(10), os.path.exists(f) and os.remove(f)], args=(temp_file,)).start()
+    except Exception as e: 
+        print(f"💥 ERRO fala automática: {e}")
 
-# Rotas de autenticação
+# ==================== COMUNICAÇÃO SERIAL (MÃO ROBÓTICA) ====================
+try:
+    import serial
+    import serial.tools.list_ports
+    SERIAL_AVAILABLE = True
+except ImportError:
+    SERIAL_AVAILABLE = False
+
+def diagnosticar_portas_seriais():
+    if not SERIAL_AVAILABLE: 
+        return []
+    try:
+        ports = list(serial.tools.list_ports.comports())
+        portas_detalhadas = []
+        for port in ports:
+            try:
+                teste = serial.Serial(port.device)
+                teste.close()
+                status = "✅ Disponível"
+            except: 
+                status = "❌ Indisponível"
+            
+            is_arduino = any(x in port.description.lower() for x in ['arduino', 'ch340', 'usb serial'])
+            port_info = {
+                'device': port.device, 
+                'description': port.description,
+                'hwid': port.hwid, 
+                'is_arduino': is_arduino, 
+                'status': status
+            }
+            portas_detalhadas.append(port_info)
+        return portas_detalhadas
+    except: 
+        return []
+
+class SerialController:
+    def __init__(self):
+        self.serial_connection = None
+        self.port = None
+        self.baudrate = 115200
+        self.connected = False
+        
+    def list_ports(self): 
+        return diagnosticar_portas_seriais()
+    
+    def connect(self, port):
+        if not SERIAL_AVAILABLE: 
+            return False, "Biblioteca serial não disponível"
+        try:
+            self.serial_connection = serial.Serial(port=port, baudrate=self.baudrate, timeout=1, write_timeout=1)
+            time.sleep(2)
+            self.port = port
+            self.connected = True
+            return True, f"Conectado à porta {port}"
+        except serial.SerialException as e:
+            return False, f"Erro: {str(e)}"
+    
+    def disconnect(self):
+        if self.serial_connection and self.serial_connection.is_open:
+            self.serial_connection.close()
+        self.connected = False
+        self.port = None
+        return True, "Desconectado"
+    
+    def send_letter(self, letter):
+        if not self.connected or not self.serial_connection:
+            return False, "Não conectado ao Arduino"
+        try:
+            letter = letter.lower().strip()
+            if len(letter) == 1 and (letter.isalpha() or letter == '0'):
+                self.serial_connection.write(letter.encode() + b'\n')
+                self.serial_connection.flush()
+                return True, f"Letra '{letter.upper()}' enviada"
+            else: 
+                return False, "Letra inválida"
+        except Exception as e: 
+            return False, f"Erro ao enviar: {str(e)}"
+    
+    def get_status(self):
+        return {
+            'connected': self.connected, 
+            'port': self.port, 
+            'serial_available': SERIAL_AVAILABLE
+        }
+
+serial_controller = SerialController()
+
+# ==================== ROTAS ====================
+
+# Rotas Serial
+@app.route('/serial/ports')
+@login_required
+def get_serial_ports(): 
+    return jsonify({'ports': serial_controller.list_ports()})
+
+@app.route('/serial/connect', methods=['POST'])
+@login_required
+def serial_connect():
+    port = request.get_json().get('port')
+    if not port: 
+        return jsonify({'success': False, 'message': 'Porta não especificada'})
+    success, message = serial_controller.connect(port)
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/serial/disconnect', methods=['POST'])
+@login_required
+def serial_disconnect():
+    success, message = serial_controller.disconnect()
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/serial/status')
+@login_required
+def serial_status(): 
+    return jsonify(serial_controller.get_status())
+
+@app.route('/serial/send_letter', methods=['POST'])
+@login_required
+def send_serial_letter():
+    letter = request.get_json().get('letter', '')
+    if not letter: 
+        return jsonify({'success': False, 'message': 'Letra não especificada'})
+    success, message = serial_controller.send_letter(letter)
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/serial/send_word', methods=['POST'])
+@login_required
+def send_serial_word():
+    word = request.get_json().get('word', '')
+    if not word: 
+        return jsonify({'success': False, 'message': 'Palavra não especificada'})
+    if not serial_controller.connected: 
+        return jsonify({'success': False, 'message': 'Não conectado ao Arduino'})
+    
+    results = []
+    for letter in word.lower():
+        if letter.isalpha() or letter == ' ':
+            if letter == ' ': 
+                time.sleep(1)
+                results.append("Espaço - pausa")
+            else:
+                success, message = serial_controller.send_letter(letter)
+                results.append(f"{letter.upper()}: {message}")
+                time.sleep(0.8)
+    return jsonify({'success': True, 'results': results})
+
+# Rotas principais
 @app.route('/')
-def index():
-    if current_user.is_authenticated:
-        return redirect(url_for('camera_tradulibras'))
-    return redirect(url_for('login'))
+def index(): 
+    return redirect(url_for('login' if not current_user.is_authenticated else 'introducao'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username', '')
-        password = request.form.get('password', '')
-        user = user_manager.authenticate(username, password)
-        if user:
+        user = user_manager.authenticate(request.form['username'], request.form['password'])
+        if user: 
             login_user(user)
-            flash('Login realizado com sucesso!', 'success')
-            return redirect(url_for('camera_tradulibras'))
-        else:
-            flash('Usuário ou senha incorretos!', 'error')
+            return redirect(url_for('introducao'))
+        else: 
+            flash('Usuário ou senha incorretos!')
     return render_template('login.html')
 
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    flash('Desconectado com sucesso!', 'success')
-    return redirect(url_for('login'))
-
-# Rotas principais
-@app.route('/camera')
-@login_required
-def camera_tradulibras():
-    return render_template('camera_tradulibras.html', 
-                         modelo_carregado=model is not None,
-                         gestos_treinados=gestos_treinados,
-                         limiar_confianca=confidence_threshold)
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-# Rotas de API
-@app.route('/letra_atual')
-@login_required
-def get_letra_atual():
-    return jsonify({
-        "letra": current_letter,
-        "texto": formed_text
-    })
-
-@app.route('/limpar_texto', methods=['POST'])
-@login_required
-def limpar_texto_completo():
-    global formed_text, current_letter
-    formed_text = ""
-    current_letter = ""
-    return jsonify({"status": "success", "texto": formed_text})
-
-@app.route('/limpar_ultima_letra', methods=['POST'])
-@login_required
-def limpar_ultima_letra():
-    global formed_text, current_letter
-    if formed_text:
-        formed_text = formed_text[:-1]
-        current_letter = ""
-    return jsonify({"status": "success", "texto": formed_text})
-
-@app.route('/falar_texto', methods=['POST'])
-@login_required
-def falar_texto():
-    if formed_text.strip():
-        try:
-            falar_texto_automatico(formed_text)
-            return jsonify({"success": True, "message": "Texto enviado para fala"})
-        except Exception as e:
-            return jsonify({"success": False, "error": str(e)})
-    return jsonify({"success": False, "error": "Texto vazio"})
-
-@app.route('/auto_speak/toggle', methods=['POST'])
-@login_required
-def toggle_auto_speak():
-    global auto_speak_enabled
-    data = request.get_json()
-    if data and 'enabled' in data:
-        auto_speak_enabled = bool(data['enabled'])
-    return jsonify({
-        'success': True, 
-        'auto_speak_enabled': auto_speak_enabled
-    })
-
-@app.route('/ajustar_limiar', methods=['POST'])
-@login_required
-def ajustar_limiar_confianca():
-    global confidence_threshold
-    try:
-        data = request.get_json()
-        if data and 'limiar' in data:
-            novo_limiar = float(data['limiar'])
-            if 0.1 <= novo_limiar <= 0.95:
-                confidence_threshold = novo_limiar
-                return jsonify({'success': True, 'limiar': confidence_threshold})
-        return jsonify({'success': False, 'message': 'Limiar inválido'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Erro: {str(e)}'})
-
-@app.route('/status')
-@login_required
-def status():
-    return jsonify({
-        "modelo_carregado": model is not None,
-        "gestos_treinados": gestos_treinados,
-        "texto_atual": formed_text,
-        "letra_atual": current_letter,
-        "limiar_confianca": confidence_threshold,
-        "auto_speak": auto_speak_enabled,
-        "cooldown": prediction_cooldown
-    })
-
-# Rota de diagnóstico
-@app.route('/diagnostico')
-@login_required
-def diagnostico():
-    return jsonify({
-        'modelo_carregado': model is not None,
-        'total_gestos': len(gestos_treinados),
-        'gestos': gestos_treinados,
-        'webcam_index': selected_camera_index,
-        'limiar_confianca': confidence_threshold
-    })
-
-# Rota de fallback para admin (simplificada)
 @app.route('/admin')
 @login_required
 def admin_dashboard():
@@ -409,30 +362,84 @@ def introducao():
 
 @app.route('/tutorial')
 @login_required
-def tutorial():
+def tutorial(): 
     return render_template('tutorial.html')
 
-# Error handlers
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({"error": "Página não encontrada"}), 404
+@app.route('/logout') 
+@login_required 
+def logout(): 
+    logout_user()
+    flash('Desconectado.')
+    return redirect(url_for('login'))
 
-@app.errorhandler(500)
-def internal_error(error):
-    return jsonify({"error": "Erro interno do servidor"}), 500
+@app.route('/camera') 
+@login_required 
+def camera_tradulibras(): 
+    return render_template('camera_tradulibras.html')
+
+@app.route('/video_feed') 
+def video_feed(): 
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# Rotas de controle
+@app.route('/limpar_ultima_letra', methods=['POST'])
+@login_required
+def limpar_ultima_letra():
+    global formed_text, current_letter
+    if formed_text: 
+        formed_text = formed_text[:-1]
+        current_letter = ""
+    return jsonify({"status": "success" if formed_text else "error", "texto": formed_text})
+
+@app.route('/letra_atual') 
+@login_required 
+def get_letra_atual(): 
+    return jsonify({"letra": current_letter, "texto": formed_text})
+
+@app.route('/limpar_texto', methods=['POST'])
+@login_required 
+def limpar_texto_completo(): 
+    global formed_text, current_letter
+    formed_text = current_letter = ""
+    return jsonify({"status": "success"})
+
+@app.route('/falar_texto', methods=['GET', 'POST'])
+@login_required
+def falar_texto():
+    if formed_text.strip():
+        try:
+            tts = gTTS(text=formed_text, lang='pt-br', slow=False)
+            temp_file = os.path.join(tempfile.gettempdir(), f'manual_speech_{int(time.time())}.mp3')
+            tts.save(temp_file)
+            response = send_file(temp_file, mimetype='audio/mpeg', as_attachment=False)
+            threading.Thread(target=lambda f: [time.sleep(30), os.path.exists(f) and os.remove(f)], args=(temp_file,)).start()
+            return response
+        except Exception as e: 
+            return jsonify({"success": False, "error": str(e)})
+    return jsonify({"success": False, "error": "Texto vazio"})
+
+@app.route('/auto_speak/toggle', methods=['POST'])
+@login_required
+def toggle_auto_speak():
+    global auto_speak_enabled
+    auto_speak_enabled = request.get_json().get('enabled', auto_speak_enabled)
+    return jsonify({'success': True, 'auto_speak_enabled': auto_speak_enabled})
+
+@app.route('/status')
+@login_required
+def status():
+    return jsonify({
+        "modelo_carregado": model is not None,
+        "classes": model_info.get('gestos_treinados', []),
+        "total_amostras": model_info.get('total_amostras', 0),
+        "texto_atual": formed_text,
+        "letra_atual": current_letter
+    })
 
 if __name__ == '__main__':
-    print("🚀 TRADULIBRAS - SISTEMA INICIADO")
-    print("=" * 50)
-    print(f"📊 Gestos carregados: {len(gestos_treinados)}")
-    print(f"🎯 Modelo: {'✅ Carregado' if model else '❌ Não carregado'}")
-    print(f"🔮 Limiar de confiança: {confidence_threshold}")
-    print(f"⏱️  Cooldown: {prediction_cooldown}s")
+    print("🚀 TRADULIBRAS - WEBCAM USB AUTOMÁTICA")
+    print(f"📊 Classes treinadas: {model_info.get('gestos_treinados', [])}")
+    print(f"📊 Total de amostras: {model_info.get('total_amostras', 0)}")
     print(f"📹 Webcam: {selected_camera_index}")
-    print("🌐 Servidor: http://localhost:5000")
-    print("=" * 50)
-    
-    try:
-        app.run(host='0.0.0.0', port=5000, debug=False)
-    except Exception as e:
-        print(f"❌ Erro ao iniciar servidor: {e}")
+    print("💡 Acesso: http://localhost:5000")
+    app.run(host='0.0.0.0', port=5000, debug=False)

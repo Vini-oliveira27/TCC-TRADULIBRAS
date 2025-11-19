@@ -21,7 +21,7 @@ print(letras)
 print(f"Total de gestos únicos: {len(letras)}")
 
 # Configurações
-AMOSTRAS_POR_GESTO = 100  # Número de amostras para cada gesto
+AMOSTRAS_POR_GESTO = 200  # Número de amostras para cada gesto
 
 # Inicializa MediaPipe Hands
 mp_hands = mp.solutions.hands
