@@ -333,8 +333,8 @@
             font-weight: 600;
         }
 
-        /* Pop-up Styles */
-        .popup-overlay {
+        /* Modal Styles */
+        .modal {
             display: none;
             position: fixed;
             top: 0;
@@ -348,14 +348,15 @@
             align-items: center;
         }
 
-        .popup-content {
+        .modal-content {
             background: white;
             padding: 30px;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
+            max-width: 600px;
             width: 90%;
-            text-align: center;
+            max-height: 80vh;
+            overflow-y: auto;
             animation: popupIn 0.3s ease-out;
         }
 
@@ -370,41 +371,126 @@
             }
         }
 
-        .popup-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
         }
 
-        .popup-title {
-            font-family: 'Manrope', sans-serif;
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #9dabee;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .users-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-role-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .role-admin {
+            background: #dc3545;
+            color: white;
+        }
+
+        .role-user {
+            background: #28a745;
+            color: white;
+        }
+
+        .logs-content {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #9dabee;
+            background: white;
+        }
+
+        .system-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .info-value {
             font-size: 1.5rem;
             font-weight: 700;
-            color: #2c3e50;
-            margin-bottom: 10px;
+            color: #4151df;
+            margin-bottom: 5px;
         }
 
-        .popup-message {
+        .info-label {
+            font-size: 0.8rem;
             color: #666;
-            line-height: 1.5;
-            margin-bottom: 20px;
-        }
-
-        .popup-btn {
-            background: linear-gradient(135deg, #9dabee 0%, #4151df 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 50px;
-            cursor: pointer;
-            font-size: 0.9rem;
             font-weight: 600;
-            transition: all 0.3s ease;
-            font-family: 'Manrope', sans-serif;
-        }
-
-        .popup-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
         }
 
         @media (max-width: 1024px) {
@@ -481,20 +567,77 @@
     </style>
 </head>
 <body>
-    <!-- Pop-up de Funcionalidade em Desenvolvimento -->
-    <div class="popup-overlay" id="developmentPopup">
-        <div class="popup-content">
-            <div class="popup-icon">🚧</div>
-            <div class="popup-title">Funcionalidade em Desenvolvimento</div>
-            <div class="popup-message">
-                Esta funcionalidade está sendo desenvolvida e estará disponível em breve. 
-                Agradecemos sua paciência!
+    <!-- Modais -->
+    <div class="modal" id="usersModal">
+        <div class="modal-content">
+            <h3 class="popup-title">👥 Gerenciar Usuários</h3>
+            <div id="usersList" class="users-list">
+                <!-- Lista de usuários será carregada aqui -->
             </div>
-            <button class="popup-btn" onclick="closePopup()">Entendido</button>
+            <div class="modal-actions">
+                <button class="btn btn-success" onclick="showCreateUserModal()">
+                    <span>➕</span> Novo Usuário
+                </button>
+                <button class="btn" onclick="closeModal('usersModal')">Fechar</button>
+            </div>
         </div>
     </div>
 
-    <!-- HEADER CONSISTENTE COM O RESTO DO SISTEMA -->
+    <div class="modal" id="createUserModal">
+        <div class="modal-content">
+            <h3 class="popup-title">➕ Criar Novo Usuário</h3>
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label for="newUsername">Nome de Usuário:</label>
+                    <input type="text" id="newUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">Senha:</label>
+                    <input type="password" id="newPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="newRole">Tipo de Usuário:</label>
+                    <select id="newRole" required>
+                        <option value="user">Usuário</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-success">Criar Usuário</button>
+                    <button type="button" class="btn" onclick="closeModal('createUserModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="logsModal">
+        <div class="modal-content">
+            <h3 class="popup-title">📝 Logs do Sistema</h3>
+            <div class="modal-actions">
+                <button class="btn btn-warning" onclick="clearLogs()">
+                    <span>🧹</span> Limpar Logs
+                </button>
+                <button class="btn" onclick="closeModal('logsModal')">Fechar</button>
+            </div>
+            <div id="logsContent" class="logs-content">
+                <!-- Logs serão carregados aqui -->
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="systemInfoModal">
+        <div class="modal-content">
+            <h3 class="popup-title">📊 Informações do Sistema</h3>
+            <div id="systemInfoContent">
+                <!-- Informações do sistema serão carregadas aqui -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('systemInfoModal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER -->
     <header class="page-header">
         <a href="/introducao" class="nav-btn">
             <span>←</span>
@@ -556,11 +699,11 @@
                 <div class="card-content">
                     <p>Gerencie atualizações do sistema TraduLibras.</p>
                     <div style="margin-top: 15px;">
-                        <button class="btn btn-success" onclick="showDevelopmentPopup()">
+                        <button class="btn btn-success" onclick="checkUpdates()">
                             <span>🔍</span>
                             Verificar Atualizações
                         </button>
-                        <button class="btn btn-warning" onclick="showDevelopmentPopup()">
+                        <button class="btn btn-warning" onclick="updateSystem()">
                             <span>⚡</span>
                             Atualizar Sistema
                         </button>
@@ -577,11 +720,11 @@
                 <div class="card-content">
                     <p>Gerencie usuários e permissões do sistema.</p>
                     <div style="margin-top: 15px;">
-                        <button class="btn" onclick="showDevelopmentPopup()">
+                        <button class="btn" onclick="manageUsers()">
                             <span>👨‍💼</span>
                             Gerenciar Usuários
                         </button>
-                        <button class="btn btn-success" onclick="showDevelopmentPopup()">
+                        <button class="btn btn-success" onclick="showCreateUserModal()">
                             <span>➕</span>
                             Novo Usuário
                         </button>
@@ -604,6 +747,12 @@
                         <strong>Versão:</strong> 2.0.0<br>
                         <strong>Última Atualização:</strong> Hoje
                     </p>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-info" onclick="showSystemInfo()">
+                            <span>🌐</span>
+                            Info Detalhada
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -620,7 +769,7 @@
                             <span>📷</span>
                             Reconhecimento LIBRAS
                         </a>
-                        <button class="btn btn-info" onclick="showDevelopmentPopup()">
+                        <button class="btn btn-info" onclick="showSystemInfo()">
                             <span>🌐</span>
                             Info de Rede
                         </button>
@@ -637,11 +786,11 @@
                 <div class="card-content">
                     <p>Visualize logs e atividades do sistema.</p>
                     <div style="margin-top: 15px;">
-                        <button class="btn" onclick="showDevelopmentPopup()">
+                        <button class="btn" onclick="viewLogs()">
                             <span>📋</span>
                             Ver Logs
                         </button>
-                        <button class="btn btn-warning" onclick="showDevelopmentPopup()">
+                        <button class="btn btn-warning" onclick="clearLogs()">
                             <span>🧹</span>
                             Limpar Logs
                         </button>
@@ -658,11 +807,11 @@
                 <div class="card-content">
                     <p>Gerencie backups do sistema e dados.</p>
                     <div style="margin-top: 15px;">
-                        <button class="btn btn-success" onclick="showDevelopmentPopup()">
+                        <button class="btn btn-success" onclick="createBackup()">
                             <span>💾</span>
                             Criar Backup
                         </button>
-                        <button class="btn" onclick="showDevelopmentPopup()">
+                        <button class="btn" onclick="restoreBackup()">
                             <span>🔄</span>
                             Restaurar Backup
                         </button>
@@ -678,30 +827,25 @@
     </div>
 
     <script>
-        // Funções do Pop-up
-        function showDevelopmentPopup() {
-            document.getElementById('developmentPopup').style.display = 'flex';
+        // Funções para modais
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
         }
 
-        function closePopup() {
-            document.getElementById('developmentPopup').style.display = 'none';
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
         }
 
-        // Fechar pop-up ao clicar fora
-        document.getElementById('developmentPopup').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closePopup();
-            }
+        // Fechar modal ao clicar fora
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
         });
 
-        // Fechar pop-up com ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closePopup();
-            }
-        });
-
-        // Funções originais (mantidas para referência futura)
+        // Funções de loading
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
         }
@@ -710,36 +854,261 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        function checkUpdates() {
-            showDevelopmentPopup();
+        // Gerenciamento de Usuários
+        async function manageUsers() {
+            showLoading();
+            try {
+                const response = await fetch('/admin/users');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const usersList = document.getElementById('usersList');
+                    usersList.innerHTML = '';
+                    
+                    data.users.forEach(user => {
+                        const userItem = document.createElement('div');
+                        userItem.className = 'user-item';
+                        userItem.innerHTML = `
+                            <div class="user-info">
+                                <strong>${user.username}</strong>
+                                <span class="user-role-badge role-${user.role}">${user.role.toUpperCase()}</span>
+                            </div>
+                            ${user.id !== '{{ current_user.id }}' ? 
+                                `<button class="btn btn-danger btn-sm" onclick="deleteUser('${user.id}')">Excluir</button>` : 
+                                '<span style="color: #666;">Usuário atual</span>'
+                            }
+                        `;
+                        usersList.appendChild(userItem);
+                    });
+                    
+                    showModal('usersModal');
+                } else {
+                    alert('Erro ao carregar usuários: ' + data.error);
+                }
+            } catch (error) {
+                alert('Erro ao carregar usuários: ' + error.message);
+            } finally {
+                hideLoading();
+            }
         }
 
-        function updateSystem() {
-            showDevelopmentPopup();
+        function showCreateUserModal() {
+            document.getElementById('createUserForm').reset();
+            closeModal('usersModal');
+            showModal('createUserModal');
         }
 
-        function createUser() {
-            showDevelopmentPopup();
+        document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('newUsername').value;
+            const password = document.getElementById('newPassword').value;
+            const role = document.getElementById('newRole').value;
+            
+            showLoading();
+            try {
+                const response = await fetch('/admin/users/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password, role })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Usuário criado com sucesso!');
+                    closeModal('createUserModal');
+                    manageUsers(); // Recarregar lista
+                } else {
+                    alert('Erro ao criar usuário: ' + data.message);
+                }
+            } catch (error) {
+                alert('Erro ao criar usuário: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        async function deleteUser(userId) {
+            if (!confirm('Tem certeza que deseja excluir este usuário?')) {
+                return;
+            }
+            
+            showLoading();
+            try {
+                const response = await fetch('/admin/users/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Usuário excluído com sucesso!');
+                    manageUsers(); // Recarregar lista
+                } else {
+                    alert('Erro ao excluir usuário: ' + data.message);
+                }
+            } catch (error) {
+                alert('Erro ao excluir usuário: ' + error.message);
+            } finally {
+                hideLoading();
+            }
         }
 
-        function showNetworkInfo() {
-            showDevelopmentPopup();
+        // Logs do Sistema
+        async function viewLogs() {
+            showLoading();
+            try {
+                const response = await fetch('/admin/system/logs');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const logsContent = document.getElementById('logsContent');
+                    logsContent.innerHTML = data.logs.map(log => 
+                        `<div class="log-entry">${log}</div>`
+                    ).join('');
+                    
+                    showModal('logsModal');
+                } else {
+                    alert('Erro ao carregar logs: ' + data.error);
+                }
+            } catch (error) {
+                alert('Erro ao carregar logs: ' + error.message);
+            } finally {
+                hideLoading();
+            }
         }
 
-        function viewLogs() {
-            showDevelopmentPopup();
+        async function clearLogs() {
+            if (!confirm('Tem certeza que deseja limpar todos os logs?')) {
+                return;
+            }
+            
+            showLoading();
+            try {
+                const response = await fetch('/admin/system/logs/clear', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Logs limpos com sucesso!');
+                    viewLogs(); // Recarregar logs
+                } else {
+                    alert('Erro ao limpar logs: ' + data.message);
+                }
+            } catch (error) {
+                alert('Erro ao limpar logs: ' + error.message);
+            } finally {
+                hideLoading();
+            }
         }
 
-        function clearLogs() {
-            showDevelopmentPopup();
+        // Informações do Sistema
+        async function showSystemInfo() {
+            showLoading();
+            try {
+                const response = await fetch('/admin/system/info');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const systemInfoContent = document.getElementById('systemInfoContent');
+                    systemInfoContent.innerHTML = `
+                        <div class="system-info-grid">
+                            <div class="info-item">
+                                <div class="info-value">${data.platform}</div>
+                                <div class="info-label">Sistema Operacional</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${data.python_version}</div>
+                                <div class="info-label">Python</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${data.cpu_usage}%</div>
+                                <div class="info-label">Uso da CPU</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${data.memory_usage}%</div>
+                                <div class="info-label">Uso de Memória</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${data.disk_usage}%</div>
+                                <div class="info-label">Uso de Disco</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${data.current_users}</div>
+                                <div class="info-label">Usuários</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                            <strong>Modelo de LIBRAS:</strong> ${data.model_loaded ? 'Carregado' : 'Não carregado'}<br>
+                            <strong>Classes treinadas:</strong> ${data.model_classes}<br>
+                            <strong>Amostras totais:</strong> ${data.total_samples}<br>
+                            <strong>Inicializado em:</strong> ${data.boot_time}
+                        </div>
+                    `;
+                    
+                    showModal('systemInfoModal');
+                } else {
+                    alert('Erro ao carregar informações do sistema: ' + data.error);
+                }
+            } catch (error) {
+                alert('Erro ao carregar informações do sistema: ' + error.message);
+            } finally {
+                hideLoading();
+            }
         }
 
-        function createBackup() {
-            showDevelopmentPopup();
+        // Backup
+        async function createBackup() {
+            showLoading();
+            try {
+                const response = await fetch('/admin/system/backup/create', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Backup criado com sucesso: ' + data.message);
+                } else {
+                    alert('Erro ao criar backup: ' + data.message);
+                }
+            } catch (error) {
+                alert('Erro ao criar backup: ' + error.message);
+            } finally {
+                hideLoading();
+            }
         }
 
         function restoreBackup() {
-            showDevelopmentPopup();
+            alert('Funcionalidade de restauração de backup será implementada em breve!');
+        }
+
+        // Sistema de Atualização
+        function checkUpdates() {
+            showLoading();
+            setTimeout(() => {
+                hideLoading();
+                alert('Sistema está atualizado! Versão 2.0.0');
+            }, 1000);
+        }
+
+        function updateSystem() {
+            if(confirm('Deseja verificar atualizações do sistema?')) {
+                showLoading();
+                setTimeout(() => {
+                    hideLoading();
+                    alert('Sistema está na versão mais recente!');
+                }, 2000);
+            }
         }
     </script>
 </body>

@@ -55,12 +55,5 @@ O sistema está **100% funcional** e optimizado:
 - ✅ Áudio integrado
 - ✅ Autenticação segura
 
-## 📚 Documentação Adicional
-
-- **Instruções de coleta:** Ver `COMO_COLETAR_DADOS.md`
-- **Desenvolvimento:** Projeto limpo e organizado
-- **Versão:** 2.0.0 - FUNCIONAL
-
 ## 🏆 Pronto para Produção!
-
 Este sistema está **estavel, testeado e pronto para uso** em ambientes educacionais ou de inclusão social!

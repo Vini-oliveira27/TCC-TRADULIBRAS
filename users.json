@@ -6,7 +6,7 @@
       "password_hash": "scrypt:32768:8:1$7G07C1YbE5JuUjIN$d8fc8f6154da0f05a8552e2309fe1d787bc24711ac4ac6fa54e4d225da668cfe0bc8359c8f86bcc1d674552826eebfff2c683cda59c1e73f3bfcfc336629655a",
       "role": "admin",
       "created_at": "2025-10-19T00:01:23.464350",
-      "last_login": "2025-11-19T01:19:08.749478"
+      "last_login": "2025-11-21T23:02:21.881412"
     },
     {
       "id": "user",
@@ -14,8 +14,16 @@
       "password_hash": "scrypt:32768:8:1$uIR7KERIrpu2fF0t$c597d20a9ee5f97b57d42068b07b21003fef018b52a4536c4ac2fe0eb29257985a8768dec5d9b7053b7ac233ddc0b32c649a9ee5dffe5a5f49186b10589672d1",
       "role": "user",
       "created_at": "2025-10-19T00:01:23.575537",
-      "last_login": "2025-11-19T07:52:25.104748"
+      "last_login": "2025-11-21T23:16:45.628365"
+    },
+    {
+      "id": "vinicius",
+      "username": "vinicius",
+      "password_hash": "scrypt:32768:8:1$m71TqidD4ep2xDlS$cb2b5489589614436ab9d63d8cf0cdf0c9eb06e737b697b0e79f2ae37df3961a2ed3d52e718601acec8a4d4ede3a3ff2a9c049a668ab48dd37c34a05da241276",
+      "role": "admin",
+      "created_at": "2025-11-21T23:03:59.481304",
+      "last_login": "2025-11-22T00:34:48.883876"
     }
   ],
-  "last_updated": "2025-11-19T07:52:25.104748"
+  "last_updated": "2025-11-22T00:34:48.883876"
 }

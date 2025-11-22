@@ -7,6 +7,11 @@ import cv2, mediapipe as mp, numpy as np, pickle, os, tempfile, threading, time,
 from gtts import gTTS
 from datetime import datetime
 from auth import user_manager, User
+import json
+import shutil
+import zipfile
+import platform
+import psutil
 
 app = Flask(__name__)
 app.secret_key = 'tradulibras_secret_key_2024'
@@ -269,9 +274,231 @@ class SerialController:
 
 serial_controller = SerialController()
 
-# ==================== ROTAS ====================
+# ==================== FUNÇÕES AUXILIARES ADMIN ====================
 
-# Rotas Serial
+def log_action(action, username="System"):
+    """Registra uma ação no log do sistema"""
+    logs_dir = 'logs'
+    if not os.path.exists(logs_dir):
+        os.makedirs(logs_dir)
+    
+    log_file = os.path.join(logs_dir, 'system.log')
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    try:
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(f"[{timestamp}] {username}: {action}\n")
+    except Exception as e:
+        print(f"❌ Erro ao escrever no log: {e}")
+
+# ==================== ROTAS ADMIN ====================
+
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    if not current_user.is_admin():
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    users = user_manager.get_all_users()
+    log_action("Visualizou lista de usuários", current_user.username)
+    return jsonify({'users': users})
+
+@app.route('/admin/users/create', methods=['POST'])
+@login_required
+def admin_create_user():
+    if not current_user.is_admin():
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    role = data.get('role', 'user')
+    
+    if not username or not password:
+        return jsonify({'success': False, 'message': 'Usuário e senha são obrigatórios'})
+    
+    success, message = user_manager.create_user(username, password, role)
+    
+    if success:
+        log_action(f"Criou usuário: {username} ({role})", current_user.username)
+    else:
+        log_action(f"Falha ao criar usuário: {username} - {message}", current_user.username)
+    
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/admin/users/delete', methods=['POST'])
+@login_required
+def admin_delete_user():
+    if not current_user.is_admin():
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    data = request.get_json()
+    user_id = data.get('user_id')
+    
+    if not user_id:
+        return jsonify({'success': False, 'message': 'ID do usuário não especificado'})
+    
+    if user_id == current_user.id:
+        return jsonify({'success': False, 'message': 'Não é possível excluir seu próprio usuário'})
+    
+    # Obter nome do usuário antes de excluir para logging
+    user_to_delete = user_manager.get_user(user_id)
+    username = user_to_delete.username if user_to_delete else 'Desconhecido'
+    
+    success, message = user_manager.delete_user(user_id)
+    
+    if success:
+        log_action(f"Excluiu usuário: {username}", current_user.username)
+    else:
+        log_action(f"Falha ao excluir usuário: {username} - {message}", current_user.username)
+    
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/admin/system/logs')
+@login_required
+def admin_system_logs():
+    if not current_user.is_admin():
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    logs_dir = 'logs'
+    if not os.path.exists(logs_dir):
+        os.makedirs(logs_dir)
+    
+    log_file = os.path.join(logs_dir, 'system.log')
+    logs = []
+    
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, 'r', encoding='utf-8') as f:
+                logs = f.readlines()[-100:]  # Últimas 100 linhas
+        except Exception as e:
+            logs = [f'Erro ao ler arquivo de log: {str(e)}']
+    
+    log_action("Visualizou logs do sistema", current_user.username)
+    return jsonify({'logs': logs})
+
+@app.route('/admin/system/logs/clear', methods=['POST'])
+@login_required
+def admin_clear_logs():
+    if not current_user.is_admin():
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    logs_dir = 'logs'
+    log_file = os.path.join(logs_dir, 'system.log')
+    
+    try:
+        if os.path.exists(log_file):
+            with open(log_file, 'w') as f:
+                f.write(f"Logs limpos em {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        
+        log_action("Limpou logs do sistema", current_user.username)
+        return jsonify({'success': True, 'message': 'Logs limpos com sucesso'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao limpar logs: {str(e)}'})
+
+@app.route('/admin/system/backup/create', methods=['POST'])
+@login_required
+def admin_create_backup():
+    if not current_user.is_admin():
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    try:
+        backup_dir = 'backups'
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = os.path.join(backup_dir, f'backup_{timestamp}.zip')
+        
+        # Arquivos para backup
+        files_to_backup = ['auth.py', 'modelos/', 'logs/']
+        
+        with zipfile.ZipFile(backup_file, 'w') as zipf:
+            for item in files_to_backup:
+                if os.path.exists(item):
+                    if os.path.isdir(item):
+                        for root, dirs, files in os.walk(item):
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                arcname = os.path.relpath(file_path, start='.')
+                                zipf.write(file_path, arcname)
+                    else:
+                        zipf.write(item, os.path.basename(item))
+        
+        # Log do backup
+        log_action(f"Backup criado: {backup_file}", current_user.username)
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Backup criado com sucesso: {backup_file}',
+            'backup_file': backup_file
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao criar backup: {str(e)}'})
+
+@app.route('/admin/system/backup/list')
+@login_required
+def admin_list_backups():
+    if not current_user.is_admin():
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    backup_dir = 'backups'
+    if not os.path.exists(backup_dir):
+        return jsonify({'backups': []})
+    
+    backups = []
+    for file in os.listdir(backup_dir):
+        if file.endswith('.zip'):
+            file_path = os.path.join(backup_dir, file)
+            file_time = os.path.getmtime(file_path)
+            backups.append({
+                'name': file,
+                'size': os.path.getsize(file_path),
+                'date': datetime.fromtimestamp(file_time).strftime('%Y-%m-%d %H:%M:%S')
+            })
+    
+    # Ordenar por data (mais recente primeiro)
+    backups.sort(key=lambda x: x['date'], reverse=True)
+    return jsonify({'backups': backups})
+
+@app.route('/admin/system/info')
+@login_required
+def admin_system_info():
+    if not current_user.is_admin():
+        return jsonify({'error': 'Acesso negado'}), 403
+    
+    try:
+        system_info = {
+            'platform': platform.platform(),
+            'python_version': platform.python_version(),
+            'cpu_usage': psutil.cpu_percent(interval=1),
+            'memory_usage': psutil.virtual_memory().percent,
+            'disk_usage': psutil.disk_usage('/').percent,
+            'boot_time': datetime.fromtimestamp(psutil.boot_time()).strftime('%Y-%m-%d %H:%M:%S'),
+            'model_loaded': model is not None,
+            'model_classes': len(model_info.get('gestos_treinados', [])),
+            'total_samples': model_info.get('total_amostras', 0),
+            'current_users': len(user_manager.get_all_users())
+        }
+    except Exception as e:
+        system_info = {
+            'platform': platform.platform(),
+            'python_version': platform.python_version(),
+            'cpu_usage': 'N/A',
+            'memory_usage': 'N/A',
+            'disk_usage': 'N/A',
+            'boot_time': 'N/A',
+            'model_loaded': model is not None,
+            'model_classes': len(model_info.get('gestos_treinados', [])),
+            'total_samples': model_info.get('total_amostras', 0),
+            'current_users': len(user_manager.get_all_users())
+        }
+    
+    log_action("Visualizou informações do sistema", current_user.username)
+    return jsonify(system_info)
+
+# ==================== ROTAS SERIAL ====================
+
 @app.route('/serial/ports')
 @login_required
 def get_serial_ports(): 
@@ -284,12 +511,22 @@ def serial_connect():
     if not port: 
         return jsonify({'success': False, 'message': 'Porta não especificada'})
     success, message = serial_controller.connect(port)
+    
+    if success:
+        log_action(f"Conectou à porta serial: {port}", current_user.username)
+    else:
+        log_action(f"Falha ao conectar na porta serial: {port} - {message}", current_user.username)
+    
     return jsonify({'success': success, 'message': message})
 
 @app.route('/serial/disconnect', methods=['POST'])
 @login_required
 def serial_disconnect():
     success, message = serial_controller.disconnect()
+    
+    if success:
+        log_action("Desconectou da porta serial", current_user.username)
+    
     return jsonify({'success': success, 'message': message})
 
 @app.route('/serial/status')
@@ -304,6 +541,10 @@ def send_serial_letter():
     if not letter: 
         return jsonify({'success': False, 'message': 'Letra não especificada'})
     success, message = serial_controller.send_letter(letter)
+    
+    if success:
+        log_action(f"Enviou letra para mão robótica: {letter}", current_user.username)
+    
     return jsonify({'success': success, 'message': message})
 
 @app.route('/serial/send_word', methods=['POST'])
@@ -325,9 +566,12 @@ def send_serial_word():
                 success, message = serial_controller.send_letter(letter)
                 results.append(f"{letter.upper()}: {message}")
                 time.sleep(0.8)
+    
+    log_action(f"Enviou palavra para mão robótica: {word}", current_user.username)
     return jsonify({'success': True, 'results': results})
 
-# Rotas principais
+# ==================== ROTAS PRINCIPAIS ====================
+
 @app.route('/')
 def index(): 
     return redirect(url_for('login' if not current_user.is_authenticated else 'introducao'))
@@ -338,9 +582,11 @@ def login():
         user = user_manager.authenticate(request.form['username'], request.form['password'])
         if user: 
             login_user(user)
+            log_action("Login realizado", user.username)
             return redirect(url_for('introducao'))
         else: 
             flash('Usuário ou senha incorretos!')
+            log_action(f"Tentativa de login falhou: {request.form['username']}", "System")
     return render_template('login.html')
 
 @app.route('/admin')
@@ -351,6 +597,7 @@ def admin_dashboard():
         return redirect(url_for('camera_tradulibras'))
     
     user_stats = user_manager.get_stats()
+    log_action("Acessou painel administrativo", current_user.username)
     return render_template('admin_dashboard.html', user_stats=user_stats)
 
 @app.route('/introducao')
@@ -368,6 +615,7 @@ def tutorial():
 @app.route('/logout') 
 @login_required 
 def logout(): 
+    log_action("Logout realizado", current_user.username)
     logout_user()
     flash('Desconectado.')
     return redirect(url_for('login'))
@@ -381,7 +629,8 @@ def camera_tradulibras():
 def video_feed(): 
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# Rotas de controle
+# ==================== ROTAS DE CONTROLE ====================
+
 @app.route('/limpar_ultima_letra', methods=['POST'])
 @login_required
 def limpar_ultima_letra():
@@ -389,6 +638,7 @@ def limpar_ultima_letra():
     if formed_text: 
         formed_text = formed_text[:-1]
         current_letter = ""
+        log_action("Limpar última letra", current_user.username)
     return jsonify({"status": "success" if formed_text else "error", "texto": formed_text})
 
 @app.route('/letra_atual') 
@@ -401,6 +651,7 @@ def get_letra_atual():
 def limpar_texto_completo(): 
     global formed_text, current_letter
     formed_text = current_letter = ""
+    log_action("Limpar texto completo", current_user.username)
     return jsonify({"status": "success"})
 
 @app.route('/falar_texto', methods=['GET', 'POST'])
@@ -413,6 +664,8 @@ def falar_texto():
             tts.save(temp_file)
             response = send_file(temp_file, mimetype='audio/mpeg', as_attachment=False)
             threading.Thread(target=lambda f: [time.sleep(30), os.path.exists(f) and os.remove(f)], args=(temp_file,)).start()
+            
+            log_action(f"Texto falado: {formed_text}", current_user.username)
             return response
         except Exception as e: 
             return jsonify({"success": False, "error": str(e)})
@@ -423,6 +676,8 @@ def falar_texto():
 def toggle_auto_speak():
     global auto_speak_enabled
     auto_speak_enabled = request.get_json().get('enabled', auto_speak_enabled)
+    
+    log_action(f"Auto-speak {'ativado' if auto_speak_enabled else 'desativado'}", current_user.username)
     return jsonify({'success': True, 'auto_speak_enabled': auto_speak_enabled})
 
 @app.route('/status')
@@ -437,6 +692,14 @@ def status():
     })
 
 if __name__ == '__main__':
+    # Criar diretórios necessários
+    for directory in ['logs', 'backups']:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    
+    # Log de inicialização (sem current_user)
+    log_action("Sistema Tradulibras iniciado")
+    
     print("🚀 TRADULIBRAS - WEBCAM USB AUTOMÁTICA")
     print(f"📊 Classes treinadas: {model_info.get('gestos_treinados', [])}")
     print(f"📊 Total de amostras: {model_info.get('total_amostras', 0)}")

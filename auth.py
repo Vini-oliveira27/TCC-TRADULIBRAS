@@ -137,7 +137,7 @@ class UserManager:
     def create_user(self, username, password, role='user'):
         """Cria novo usuário"""
         if self.get_user_by_username(username):
-            return None  # Usuário já existe
+            return False, "Usuário já existe"
         
         user_id = username.lower().replace(' ', '_')
         user = User(
@@ -149,7 +149,7 @@ class UserManager:
         
         self.users[user_id] = user
         self.save_users()
-        return user
+        return True, "Usuário criado com sucesso"
     
     def update_user(self, user_id, **kwargs):
         """Atualiza usuário"""
@@ -169,12 +169,25 @@ class UserManager:
         if user_id in self.users:
             del self.users[user_id]
             self.save_users()
-            return True
-        return False
+            return True, "Usuário excluído com sucesso"
+        return False, "Usuário não encontrado"
     
     def list_users(self):
         """Lista todos os usuários"""
         return list(self.users.values())
+    
+    def get_all_users(self):
+        """Obtém todos os usuários em formato para API"""
+        users_list = []
+        for user in self.users.values():
+            users_list.append({
+                'id': user.id,
+                'username': user.username,
+                'role': user.role,
+                'created_at': user.created_at,
+                'last_login': user.last_login
+            })
+        return users_list
     
     def get_stats(self):
         """Obtém estatísticas dos usuários"""
@@ -191,5 +204,3 @@ class UserManager:
 
 # Instância global do gerenciador de usuários
 user_manager = UserManager()
-
-
